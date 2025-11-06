@@ -1,6 +1,9 @@
 [project]
 name = "h2ctypes"
 version = "0.1.0"
+authors = [
+    { name = "jwl", email = "408066557@qq.com" }
+]
 description = "convert c++ header files to python ctypes"
 readme = "README.md"
 requires-python = ">=3.10"
