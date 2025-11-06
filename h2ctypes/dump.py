@@ -34,7 +34,7 @@ def parse_str2json(context):
     parsing_type = None
     parse_end_counter = 1
     name_pattern = re.compile(r'(struct|enum)\s+(\w+)\s*\{*')
-    kv_pattern = re.compile(r'(\w+)\s+(\w+)\s*;*')
+    kv_pattern = re.compile(r'([\w\*]+)\s+(\w+)\s*;*')
     for line in context.split('\n'):
         cline = line.strip()
         if not cline:

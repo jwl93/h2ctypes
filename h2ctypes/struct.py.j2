@@ -2,7 +2,7 @@ import ctypes
 
 class {{ struct_name }}(ctypes.Structure):
     _pack_ = {{ pack }}
-    _field_ = (
+    _fields_ = (
 {% for field_info in field_infos %}
         ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} ),
 {% endfor %}

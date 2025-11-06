@@ -11,6 +11,9 @@ _CXX2CTYPES = {
     "uint8_t": "ctypes.c_uint8",
     "int": "ctypes.c_int",
     "bool": "ctypes.c_bool",
+    "char": "ctypes.c_char",
+    "short": "ctypes.c_short",
+    "long": "ctypes.c_long",
     "std::string_view": "ctypes.c_char",
     "unsigned": "ctypes.c_uint",
 }
