@@ -1,6 +1,8 @@
-import re
+import os, re
+import jinja2
 from collections import OrderedDict
 import typer
+from h2ctypes.common import _CXX2CTYPES
 
 app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
@@ -108,18 +110,35 @@ def dump(dump_structname: str,
         dump_json_path: str = '{dump_structname}.json',
         dump_py_path: str = '{dump_structname}.py',
         noconvert: bool = False,
+        pack: int = 8,
     ):
     import json
     base_infos = load_structs(input_header_files)
     structs, enums, type_defs = base_infos
-    ret = parse2dict(structs[dump_structname], base_infos)
+    return_dict = parse2dict(structs[dump_structname], base_infos)
     if noconvert:
         dump_json_path = dump_json_path.format(**locals())
         with open(dump_json_path, 'w') as f:
-            json.dump(ret, f, indent=2)
+            json.dump(return_dict, f, indent=2)
         print(f'[dump] {dump_json_path}')
     else:
-        pass
+        # process ctypes map
+        template_path = os.path.join(os.path.dirname(__file__), 'struct.py.j2')
+        env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(os.path.dirname(template_path)),
+            undefined=jinja2.StrictUndefined,
+            trim_blocks=True,
+        )
+        template = env.get_template(os.path.basename(template_path))
+        res = template.render({
+            'struct_name': dump_structname,
+            'pack': pack,
+            'field_infos': [{'name': k, 'ctypes': _CXX2CTYPES[v]} for k, v in return_dict.items()],
+        })
+        dump_py_path = dump_py_path.format(**locals())
+        with open(dump_py_path, 'w') as f:
+            f.write(res)
+        print(f'[dump] {dump_py_path}')
 
 if __name__ == '__main__':
     app()
