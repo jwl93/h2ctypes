@@ -11,3 +11,8 @@ dependencies = [
 
 [project.scripts]
 h2ctypes_dump = "h2ctypes.dump:app"
+
+[tool.setuptools.package-data]
+"h2ctypes" = [
+    "**/*.j2"
+]
