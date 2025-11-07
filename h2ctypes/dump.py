@@ -11,12 +11,12 @@ app = typer.Typer(
 def get_struct_str(filepath):
     with open(filepath, 'r') as f:
         context = f.read()
-    type_defs_pattern = r"typedef\s+(\w+)\s+(\w+)\s*;*"
+    type_defs_pattern = r"typedef\s+([\w\s]+)\s+(\w+)\s*;*"
     type_defs_results = re.findall(type_defs_pattern, context, re.DOTALL)
     type_defs = {}
     for (kind, name) in type_defs_results:
         if kind != 'struct':
-            type_defs[name] = kind
+            type_defs[name] = kind.strip()
     const_pattern = r"const\w+\s+(\w+)\s+(\w+)\s+=\s*(\w+)\s*;"
     const_results = re.findall(const_pattern, context, re.DOTALL)
     const_vals = {}
@@ -85,8 +85,8 @@ def parse_str2json(context, const_vals, verbose=False):
                 if not split_cline:
                     continue
                 kv_match = kv_pattern.search(split_cline)
-                k = kv_match.group(1)
-                v = kv_match.group(2)
+                k = kv_match.group(1).strip()
+                v = kv_match.group(2).strip()
                 length = None
                 if '[' in v:
                     v_split = v.split('[')
@@ -97,7 +97,8 @@ def parse_str2json(context, const_vals, verbose=False):
                         if v_len in const_vals:
                             v_len = const_vals[v_len]
                         length *= int(v_len)
-                    print(parsing, k, v, length)
+                    if verbose:
+                        print(parsing, k, v, length)
                 structs[parsing][v] = { 'type': k, 'length': length }
         else:
             split_clines = cline.split(',')
@@ -129,17 +130,21 @@ def load_structs(filepaths, verbose=False):
     #print('[parsing] done')
     return result_structs, result_enums, result_type_defs
 
-def parse2dict(item, base_infos, ret=OrderedDict()):
+def parse2dict(dump_structname, base_infos, ret=OrderedDict()):
     structs, enums, type_defs = base_infos
+    item = structs[dump_structname]
     for k, k_item in item.items():
         v = k_item['type']
         if v in enums:
             ret[k] = {'type': 'uint32_t', 'length': None}
-        elif v in structs:
-            ext_ret = parse2dict(structs[v], base_infos)
-            ret.update(ext_ret)
+        elif v != dump_structname and v in structs:
+            #print(f'[Parsing] {v}')
+            ext_ret = parse2dict(v, base_infos, ret=OrderedDict())
+            for kk, vv in ext_ret.items():
+                #print(f'{k}_{kk}', vv)
+                ret[f'{k}_{kk}'] = vv
         elif v in type_defs:
-            ret[k] = {'type': type_defs[v], 'length': None}
+            ret[k] = {'type': type_defs[v], 'length': k_item.get('length', None)}
         else:
             ret[k] = k_item
     return ret
@@ -150,13 +155,13 @@ def dump(dump_structname: str,
         dump_json_path: str = '{dump_structname}.json',
         dump_py_path: str = '{dump_structname}.py',
         noconvert: bool = False,
-        pack: int = 8,
+        pack: int = 0,
         verbose: bool = False,
     ):
     import json
     base_infos = load_structs(input_header_files, verbose=verbose)
     structs, enums, type_defs = base_infos
-    return_dict = parse2dict(structs[dump_structname], base_infos)
+    return_dict = parse2dict(dump_structname, base_infos)
     if noconvert:
         dump_json_path = dump_json_path.format(**locals())
         with open(dump_json_path, 'w') as f:

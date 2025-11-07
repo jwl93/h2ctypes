@@ -29,3 +29,6 @@ class {{ struct_name }}(ctypes.Structure):
             return v
         kvs = [f"{k}={_repr_cvalue(getattr(self, k))}" for k, _ in self._fields_]
         return f"{self.__class__.__name__}({', '.join(kvs)})"
+
+if __name__ == '__main__':
+    print(ctypes.sizeof({{ struct_name }}))

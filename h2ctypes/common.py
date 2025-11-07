@@ -14,6 +14,7 @@ _CXX2CTYPES = {
     "char": "ctypes.c_char",
     "short": "ctypes.c_short",
     "long": "ctypes.c_long",
+    "long long": "ctypes.c_longlong",
     "std::string_view": "ctypes.c_char",
     "unsigned": "ctypes.c_uint",
 }
