@@ -32,11 +32,7 @@ struct PointerStruct {
 };
 
 // 5. 带枚举的结构体
-enum Status { 
-	OK, 
-	ERROR, 
-	PENDING 
-};
+enum Status { OK, ERROR, PENDING };
 struct EnumStruct {
     Status status;
     int code;

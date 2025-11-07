@@ -19,3 +19,15 @@ h2ctypes_dump = "h2ctypes.dump:app"
 "h2ctypes" = [
     "**/*.j2"
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple"
+default = true
