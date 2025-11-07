@@ -17,6 +17,11 @@ def get_struct_str(filepath):
     for (kind, name) in type_defs_results:
         if kind != 'struct':
             type_defs[name] = kind
+    const_pattern = r"const\w+\s+(\w+)\s+(\w+)\s+=\s*(\w+)\s*;"
+    const_results = re.findall(const_pattern, context, re.DOTALL)
+    const_vals = {}
+    for _, k, v in const_results:
+        const_vals[k] = v
     pattern = r"(struct|enum)\s+\w+\s*\{.*\}.*;"
     matched = re.search(pattern, context, re.DOTALL)
     if matched:
@@ -25,9 +30,9 @@ def get_struct_str(filepath):
         context = re.sub(r'//.*$', '', context, flags=re.MULTILINE)
     else:
         context = ''
-    return context, type_defs
+    return context, type_defs, const_vals
 
-def parse_str2json(context, verbose=False):
+def parse_str2json(context, const_vals, verbose=False):
     structs = {}
     enums = {}
     parsing = None
@@ -88,7 +93,10 @@ def parse_str2json(context, verbose=False):
                     v = v_split[0]
                     length = 1
                     for v_len in v_split[1:]:
-                        length *= int(v_len.strip('] '))
+                        v_len = v_len.strip('] ')
+                        if v_len in const_vals:
+                            v_len = const_vals[v_len]
+                        length *= int(v_len)
                     print(parsing, k, v, length)
                 structs[parsing][v] = { 'type': k, 'length': length }
         else:
@@ -104,15 +112,20 @@ def parse_str2json(context, verbose=False):
     return structs, enums
 
 def load_structs(filepaths, verbose=False):
+    result_type_defs = {}
+    result_const_vals = {}
+    struct_contexts = []
+    for filepath in filepaths:
+        struct_context, type_defs, const_vals = get_struct_str(filepath)
+        result_type_defs.update(type_defs)
+        result_const_vals.update(const_vals)
+        struct_contexts.append(struct_context)
     result_structs = {}
     result_enums = {}
-    result_type_defs = {}
-    for filepath in filepaths:
-        struct_context, type_defs = get_struct_str(filepath)
-        structs, enums = parse_str2json(struct_context, verbose=verbose)
+    for struct_context in struct_contexts:
+        structs, enums = parse_str2json(struct_context, result_const_vals, verbose=verbose)
         result_structs.update(structs)
         result_enums.update(enums)
-        result_type_defs.update(type_defs)
     #print('[parsing] done')
     return result_structs, result_enums, result_type_defs
 
