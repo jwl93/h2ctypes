@@ -51,7 +51,7 @@ class CStruct(ctypes.Structure):
 
 ## common end ##
 ## related class infos
-{% for class_info in related_class_infos %}
+{% for _, class_info in related_class_infos.items() %}
 class {{ class_info['classname'] }}(CStruct):
     _pack_ = {{ class_info['pack'] }}
     _fields_ = (
@@ -69,7 +69,7 @@ class {{ class_info['classname'] }}(CStruct):
 
 
 ## related union infos
-{% for union_info in related_union_infos %}
+{% for _, union_info in related_union_infos.items() %}
 class {{ union_info['classname'] }}(ctypes.Union):
     _pack_ = {{ union_info['pack'] }}
     _fields_ = (

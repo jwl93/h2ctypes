@@ -130,24 +130,27 @@ def load_structs(filepaths, verbose=False):
     #print('[parsing] done')
     return result_structs, result_enums, result_type_defs
 
-def parse2dict(dump_structname, base_infos, ret=OrderedDict()):
+def parse2dict(dump_structname, base_infos):
     structs, enums, type_defs = base_infos
     item = structs[dump_structname]
+    return_infos = OrderedDict()
+    related_class_infos=OrderedDict()
+    related_union_infos=OrderedDict()
     for k, k_item in item.items():
         v = k_item['type']
         if v in enums:
-            ret[k] = {'type': 'uint32_t', 'length': None}
+            return_infos[k] = {'type': 'uint32_t', 'length': None}
         elif v != dump_structname and v in structs:
             #print(f'[Parsing] {v}')
-            ext_ret = parse2dict(v, base_infos, ret=OrderedDict())
+            ext_ret, ext_related_infos, related_union_infos = parse2dict(v, base_infos)
             for kk, vv in ext_ret.items():
                 #print(f'{k}_{kk}', vv)
-                ret[f'{k}_{kk}'] = vv
+                return_infos[f'{k}_{kk}'] = vv
         elif v in type_defs:
-            ret[k] = {'type': type_defs[v], 'length': k_item.get('length', None)}
+            return_infos[k] = {'type': type_defs[v], 'length': k_item.get('length', None)}
         else:
-            ret[k] = k_item
-    return ret
+            return_infos[k] = k_item
+    return return_infos, related_class_infos, related_union_infos
 
 @app.command()
 def dump(dump_structname: str,
@@ -161,7 +164,7 @@ def dump(dump_structname: str,
     import json
     base_infos = load_structs(input_header_files, verbose=verbose)
     structs, enums, type_defs = base_infos
-    return_dict = parse2dict(dump_structname, base_infos)
+    return_dict, related_class_infos, related_union_infos = parse2dict(dump_structname, base_infos)
     if noconvert:
         dump_json_path = dump_json_path.format(**locals())
         with open(dump_json_path, 'w') as f:
@@ -180,8 +183,8 @@ def dump(dump_structname: str,
             'struct_name': dump_structname,
             'pack': pack,
             'field_infos': [{'name': k, 'ctypes': _CXX2CTYPES[v['type']], 'length': v['length']} for k, v in return_dict.items()],
-            'related_class_infos': [],
-            'related_union_infos': [],
+            'related_class_infos': related_class_infos,
+            'related_union_infos': related_union_infos,
         })
         dump_py_path = dump_py_path.format(**locals())
         with open(dump_py_path, 'w') as f:
