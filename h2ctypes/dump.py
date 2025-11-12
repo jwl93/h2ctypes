@@ -180,6 +180,8 @@ def dump(dump_structname: str,
             'struct_name': dump_structname,
             'pack': pack,
             'field_infos': [{'name': k, 'ctypes': _CXX2CTYPES[v['type']], 'length': v['length']} for k, v in return_dict.items()],
+            'related_class_infos': [],
+            'related_union_infos': [],
         })
         dump_py_path = dump_py_path.format(**locals())
         with open(dump_py_path, 'w') as f:

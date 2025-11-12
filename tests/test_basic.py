@@ -8,6 +8,6 @@ def test_parse():
     base_infos = load_structs([test_file,], verbose=False)
     structs, enums, type_defs = base_infos
     print(structs['NestedStruct'])
-    return_dict = parse2dict(structs['NestedStruct'], base_infos)
+    return_dict = parse2dict('NestedStruct', base_infos)
     print(return_dict)
     assert True
