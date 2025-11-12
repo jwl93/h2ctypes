@@ -52,14 +52,14 @@ class CStruct(ctypes.Structure):
 ## common end ##
 ## related class infos
 {% for _, class_info in related_class_infos.items() %}
-class {{ class_info['classname'] }}(CStruct):
+class {{ class_info['struct_name'] }}(CStruct):
     _pack_ = {{ class_info['pack'] }}
     _fields_ = (
-{% for field_info in class_info['field_infos'] %}
+{% for _, field_info in class_info['field_infos'].items() %}
 {% if field_info['length'] %}
-        ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} * {{ field_info['length'] }} ),
+        ( "{{ field_info['name'] }}", {{ field_info['ctype'] }} * {{ field_info['length'] }} ),
 {% else %}
-        ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} ),
+        ( "{{ field_info['name'] }}", {{ field_info['ctype'] }} ),
 {% endif %}
 {% endfor %}
     )
@@ -70,14 +70,14 @@ class {{ class_info['classname'] }}(CStruct):
 
 ## related union infos
 {% for _, union_info in related_union_infos.items() %}
-class {{ union_info['classname'] }}(ctypes.Union):
+class {{ union_info['struct_name'] }}(ctypes.Union):
     _pack_ = {{ union_info['pack'] }}
     _fields_ = (
-{% for field_info in union_info['field_infos'] %}
+{% for _, field_info in union_info['field_infos'].items() %}
 {% if field_info['length'] %}
-        ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} * {{ field_info['length'] }} ),
+        ( "{{ field_info['name'] }}", {{ field_info['ctype'] }} * {{ field_info['length'] }} ),
 {% else %}
-        ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} ),
+        ( "{{ field_info['name'] }}", {{ field_info['ctype'] }} ),
 {% endif %}
 {% endfor %}
     )
@@ -96,11 +96,11 @@ class {{ union_info['classname'] }}(ctypes.Union):
 class {{ struct_name }}(CStruct):
     _pack_ = {{ pack }}
     _fields_ = (
-{% for field_info in field_infos %}
+{% for _, field_info in field_infos.items() %}
 {% if field_info['length'] %}
-        ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} * {{ field_info['length'] }} ),
+        ( "{{ field_info['name'] }}", {{ field_info['ctype'] }} * {{ field_info['length'] }} ),
 {% else %}
-        ( "{{ field_info['name'] }}", {{ field_info['ctypes'] }} ),
+        ( "{{ field_info['name'] }}", {{ field_info['ctype'] }} ),
 {% endif %}
 {% endfor %}
     )

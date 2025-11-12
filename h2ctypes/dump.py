@@ -133,23 +133,21 @@ def load_structs(filepaths, verbose=False):
 def parse2dict(dump_structname, base_infos):
     structs, enums, type_defs = base_infos
     item = structs[dump_structname]
-    return_infos = OrderedDict()
+    return_infos = {'struct_name': dump_structname, 'pack': 0, 'field_infos': OrderedDict()}
     related_class_infos=OrderedDict()
     related_union_infos=OrderedDict()
     for k, k_item in item.items():
         v = k_item['type']
         if v in enums:
-            return_infos[k] = {'type': 'uint32_t', 'length': None}
+            return_infos['field_infos'][k] = {'name': k, 'ctype': _CXX2CTYPES['uint32_t'], 'type': 'uint32_t', 'length': None}
         elif v != dump_structname and v in structs:
-            #print(f'[Parsing] {v}')
+            return_infos['field_infos'][k] = {'name': k, 'ctype': v,'type': v, 'length': None}
             ext_ret, ext_related_infos, related_union_infos = parse2dict(v, base_infos)
-            for kk, vv in ext_ret.items():
-                #print(f'{k}_{kk}', vv)
-                return_infos[f'{k}_{kk}'] = vv
+            related_class_infos[v] = ext_ret
         elif v in type_defs:
-            return_infos[k] = {'type': type_defs[v], 'length': k_item.get('length', None)}
+            return_infos['field_infos'][k] = {'name': k, 'ctype': _CXX2CTYPES[type_defs[v]], 'type': type_defs[v], 'length': k_item.get('length', None)}
         else:
-            return_infos[k] = k_item
+            return_infos['field_infos'][k] = {'name': k, 'ctype': _CXX2CTYPES[k_item['type']], 'type': k_item['type'], 'length': k_item['length']}
     return return_infos, related_class_infos, related_union_infos
 
 @app.command()
@@ -165,6 +163,8 @@ def dump(dump_structname: str,
     base_infos = load_structs(input_header_files, verbose=verbose)
     structs, enums, type_defs = base_infos
     return_dict, related_class_infos, related_union_infos = parse2dict(dump_structname, base_infos)
+    return_dict['related_class_infos'] = related_class_infos
+    return_dict['related_union_infos'] = related_union_infos
     if noconvert:
         dump_json_path = dump_json_path.format(**locals())
         with open(dump_json_path, 'w') as f:
@@ -179,13 +179,7 @@ def dump(dump_structname: str,
             trim_blocks=True,
         )
         template = env.get_template(os.path.basename(template_path))
-        res = template.render({
-            'struct_name': dump_structname,
-            'pack': pack,
-            'field_infos': [{'name': k, 'ctypes': _CXX2CTYPES[v['type']], 'length': v['length']} for k, v in return_dict.items()],
-            'related_class_infos': related_class_infos,
-            'related_union_infos': related_union_infos,
-        })
+        res = template.render(return_dict)
         dump_py_path = dump_py_path.format(**locals())
         with open(dump_py_path, 'w') as f:
             f.write(res)
