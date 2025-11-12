@@ -10,3 +10,4 @@ wheels/
 .venv
 *.swp
 dev_data/
+dev.sh
