@@ -38,10 +38,11 @@ def parse_str2json(context, const_vals, verbose=False):
     parsing = None
     parsing_type = None
     parse_end_counter = 1
+    parsing_union = None
     name_pattern = re.compile(r'(struct|enum)\s+(\w+)\s*\{*(.*)')
     kv_pattern = re.compile(r'([\w\*]+)\s+([\w\[\]]+)\s*;*')
     for line in context.split('\n'):
-        if parse_end_counter == 0:
+        if parse_end_counter == 0 and not parsing_union:
             parsing = None
             parsing_type = None
         cline = line.strip()
@@ -67,12 +68,16 @@ def parse_str2json(context, const_vals, verbose=False):
         cline = cline.strip('{ ')
         if 'union' in cline:
             cline = cline.replace('union', '').strip()
-            parse_end_counter += 1
+            parsing_union = 'union{}'.format(parse_end_counter)
+            #parse_end_counter += 1
         if not cline:
             continue
         if '}' in cline:
             assert 'struct' not in cline and 'enum' not in cline, cline
-            parse_end_counter -= 1
+            if parsing_union:
+                parsing_union = None
+            else:
+                parse_end_counter -= 1
             cline = cline.split('}', 1)[0].strip()
         if not cline:
             continue
@@ -100,6 +105,8 @@ def parse_str2json(context, const_vals, verbose=False):
                     if verbose:
                         print(parsing, k, v, length)
                 structs[parsing][v] = { 'type': k, 'length': length }
+                if parsing_union:
+                    structs[parsing][v]['union_class'] = parsing_union
         else:
             split_clines = cline.split(',')
             for split_cline in split_clines:
@@ -140,10 +147,22 @@ def parse2dict(dump_structname, base_infos):
         v = k_item['type']
         if v in enums:
             return_infos['field_infos'][k] = {'name': k, 'ctype': _CXX2CTYPES['uint32_t'], 'type': 'uint32_t', 'length': None}
+        elif k_item.get('union_class', None):
+            union_class = k_item['union_class']
+            if union_class not in related_union_infos:
+                return_infos['field_infos'][union_class] = {'name': union_class, 'ctype': union_class,'type': union_class, 'length': None}
+                related_union_infos[union_class] = {'struct_name': union_class, 'pack': 0, 'field_infos': OrderedDict(), 'union_key': 'type', 'link_infos': []}
+            related_union_infos[union_class]['field_infos'][k] = {'name': k, 'ctype': v,'type': v, 'length': None}
+            ext_ret, ext_related_infos, ext_union_infos = parse2dict(v, base_infos)
+            related_class_infos[v] = ext_ret
+            related_class_infos.update(ext_related_infos)
+            related_union_infos.update(ext_union_infos)
         elif v != dump_structname and v in structs:
             return_infos['field_infos'][k] = {'name': k, 'ctype': v,'type': v, 'length': None}
-            ext_ret, ext_related_infos, related_union_infos = parse2dict(v, base_infos)
+            ext_ret, ext_related_infos, ext_union_infos = parse2dict(v, base_infos)
             related_class_infos[v] = ext_ret
+            related_class_infos.update(ext_related_infos)
+            related_union_infos.update(ext_union_infos)
         elif v in type_defs:
             return_infos['field_infos'][k] = {'name': k, 'ctype': _CXX2CTYPES[type_defs[v]], 'type': type_defs[v], 'length': k_item.get('length', None)}
         else:
